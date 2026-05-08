@@ -1,0 +1,880 @@
+## JavaScript Fundamentals
+
+### Variables — Declare and store data
+
+- Use `let` for variables that can change, `const` for constants
+- Avoid `var` (legacy, has scoping issues); modern JS uses `let`/`const`
+
+```js
+let age = 25;
+const name = 'Alice';
+```
+
+### Alert / Prompt / Confirm — Interact with the user (browser only)
+
+- `alert(msg)` — shows a message, no return value
+- `prompt(msg)` — asks for text input, returns the string or `null` if cancelled
+- `confirm(msg)` — asks OK/Cancel, returns `true` or `false`
+- All three are **modal**: they pause script execution until dismissed
+- The position and style of the dialog are controlled by the browser, not your code
+
+```js
+alert('Hello!');
+let name = prompt('What is your name?');
+let confirmed = confirm('Are you sure?');
+```
+
+### Operators — Perform operations on values
+
+- **Unary `+`** — converts a value to a number
+  ```js
+  +'42'   // → 42 (number)
+  ```
+- **Binary `+`** — adds numbers, but concatenates if either side is a string
+  ```js
+  1 + '2'   // → '12' (string)
+  1 + 2     // → 3 (number)
+  ```
+- **Assignment `=`** — assigns a value and also *returns* it (unlike Python)
+  ```js
+  let a = (b = 5); // b and a are both 5
+  ```
+
+### Comparisons — Compare values
+
+- `==` — equality with **type conversion** (e.g. `'5' == 5` is `true`); special case: `null` and `undefined` only equal each other
+- `===` — **strict** equality, no type conversion (`'5' === 5` is `false`)
+- `>`, `<`, `>=`, `<=` — also do type conversion by default
+
+```js
+0 == false    // true  (type conversion)
+0 === false   // false (strict)
+null == undefined  // true
+null === undefined // false
+```
+
+### If / Else — Conditional logic
+
+- Use `if / else if / else` for multi-branch logic
+- Use the ternary `?` operator for simple one-line conditions
+
+```js
+if (score >= 90) {
+  console.log('A');
+} else if (score >= 70) {
+  console.log('B');
+} else {
+  console.log('F');
+}
+
+// Ternary shorthand
+let result = (score >= 70) ? 'Pass' : 'Fail';
+```
+
+### Logical operators
+- &&, ||, !
+equivalent of python and, or, not
+
+### Nullish coalescing operator
+- ??
+`a ?? b`
+?? returns the first argument if it’s not null/undefined. Otherwise, the second one.
+
+### Loops — Repeat code while a condition is true
+
+- **`while`** — checks condition first, then runs the body
+  ```js
+  while (condition) { ... }
+  ```
+- **`do...while`** — runs the body first, then checks; always executes at least once
+  ```js
+  do { ... } while (condition);
+  ```
+- **`for`** — most common; has begin, condition, and step in one line
+  ```js
+  for (let i = 0; i < 5; i++) { ... }
+  ```
+
+### Loop Control — break and continue
+
+- **`break`** — exits the loop immediately
+- **`continue`** — skips the rest of the current iteration, moves to the next
+  ```js
+  for (let i = 0; i < 10; i++) {
+    if (i % 2 === 0) continue; // skip even numbers
+    if (i > 7) break;          // stop at 8
+    console.log(i);            // prints 1, 3, 5, 7
+  }
+  ```
+- Ternary `?` cannot replace `if` when `break`/`continue` is needed
+
+### Labels — Break out of nested loops
+
+- A label marks a loop so `break`/`continue` can target it specifically
+- Labels do **not** let you jump to arbitrary places in code — only to the labelled loop
+
+  ```js
+  outer: for (let i = 0; i < 3; i++) {
+    for (let j = 0; j < 3; j++) {
+      if (j === 1) break outer; // exits both loops
+    }
+  }
+  ```
+
+### switch
+
+similar to python match case
+
+```js
+switch (arg) {
+  case expression1:
+    ...
+    [break]
+  case expression2:
+    ...
+    [break]
+  default:
+    ...
+}
+```
+If the equality is found, switch starts to execute the code starting from the corresponding case, until the nearest break (or until the end of switch).
+
+grouping of "case"
+
+```js
+...
+case case1:
+case case2:
+  ...
+  [break]
+...
+```
+where case1 and case2 run the same codes
+
+### Functions — Declare and call reusable code
+
+- Use the `function` keyword (unlike Python's `def`)
+- A missing argument becomes `undefined`, not an error
+
+```js
+function greet(name) {
+  console.log('Hello, ' + name);
+}
+greet('Alice');
+```
+
+- **Default parameters** — same idea as Python, but the default expression re-evaluates every call
+  ```js
+  function showMessage(from, text = 'no text given') {
+    console.log(from + ': ' + text);
+  }
+  ```
+
+- **Return** — works like Python, but without a `return` the function returns `undefined` (not `None`)
+
+- **Watch out — auto semicolon after `return`**: unlike Python, putting the value on the next line silently returns `undefined`
+  ```js
+  // Bug: returns undefined
+  return
+    someValue;
+
+  // Correct: wrap in parentheses
+  return (
+    someValue
+  );
+  ```
+
+- **Scope** — local variables are invisible outside the function, same as Python; outer variables are readable unless shadowed by a local one
+
+- **Naming convention** — use action-verb prefixes to signal intent:
+  - `get…` — returns a value
+  - `create…` — creates something
+  - `check…` — returns a boolean
+  - `show…` — displays something
+
+### Function Expressions — Functions as values
+
+- In JS, functions are values — you can store, copy, and pass them around (like Python's first-class functions)
+- A **function expression** assigns an anonymous function to a variable; note the `;` at the end (it's an assignment statement)
+  ```js
+  let greet = function() {
+    console.log('Hello');
+  };
+  greet();
+  ```
+
+- **Hoisting** (key difference from Python): function *declarations* are available before their definition in the file; function *expressions* are not
+  ```js
+  sayHi(); // works — declaration is hoisted
+  function sayHi() { console.log('Hi'); }
+
+  greet(); // Error — expression not hoisted yet
+  let greet = function() { console.log('Hi'); };
+  ```
+
+- **Callbacks** — pass a function as an argument to be called later (same concept as Python, just different syntax)
+  ```js
+  function ask(question, onYes, onNo) {
+    if (confirm(question)) onYes();
+    else onNo();
+  }
+
+  ask('Are you sure?', () => console.log('OK'), () => console.log('Cancelled'));
+  ```
+
+- **When to use which**: prefer function declarations (more readable, hoisted); use expressions when you need to conditionally define a function or assign it based on logic
+
+### Arrow Functions — Concise function syntax
+
+- Shorter alternative to function expressions, similar to Python lambdas but more powerful
+- Single-line: the expression is **implicitly returned** (no `return` needed)
+  ```js
+  let sum = (a, b) => a + b;
+  let double = n => n * 2;      // single param: no parentheses needed
+  let greet = () => 'Hello!';   // no params: empty parentheses required
+  ```
+
+- Multi-line: use curly braces, but then `return` is **required** explicitly
+  ```js
+  let sum = (a, b) => {
+    let result = a + b;
+    return result;
+  };
+  ```
+
+- Compared to Python lambdas: arrow functions can span multiple lines and contain full logic; Python lambdas are limited to a single expression
+- Commonly used for short callbacks
+  ```js
+  [1, 2, 3].map(n => n * 2); // [2, 4, 6]
+  ```
+
+### Objects — Key-value data structure (like Python dicts)
+
+- Create with `{}` literals (preferred) or `new Object()`
+- Access with dot notation or square brackets; use square brackets for dynamic keys or multiword property names
+  ```js
+  let user = { name: 'Alice', age: 25 };
+  user.name;         // 'Alice'
+  user['age'];       // 25
+  user.isAdmin = true;
+  delete user.age;
+  ```
+
+- **Computed properties** — dynamic key names at creation time
+  ```js
+  let field = 'name';
+  let user = { [field]: 'Alice' }; // { name: 'Alice' }
+  ```
+
+- **Property shorthand** — when variable name matches property name
+  ```js
+  let name = 'Alice', age = 25;
+  let user = { name, age }; // same as { name: name, age: age }
+  ```
+
+- **`in` operator** — check if a property exists (more reliable than `=== undefined`)
+  ```js
+  'name' in user  // true
+  'foo' in user   // false
+  ```
+
+- **`for...in` loop** — iterate over all properties (like Python's `for key in dict`)
+  ```js
+  for (let key in user) {
+    console.log(key, user[key]);
+  }
+  ```
+  - Integer-like keys are sorted numerically; all other keys appear in insertion order
+
+### Object References & Copying — Objects are passed by reference
+
+- Primitives (`number`, `string`, etc.) are copied by value; objects are copied **by reference** — same as Python
+  ```js
+  let a = { name: 'Alice' };
+  let b = a;       // b points to the same object
+  b.name = 'Bob';
+  console.log(a.name); // 'Bob'
+  ```
+
+- **Comparing objects**: `==` and `===` check reference identity, not contents — two objects with identical properties are NOT equal
+  ```js
+  let x = {}, y = {};
+  x === y; // false — different objects in memory
+  ```
+
+- **`const` objects are still mutable** — `const` only prevents reassigning the variable, not modifying its properties
+  ```js
+  const user = { name: 'Alice' };
+  user.name = 'Bob'; // allowed
+  user = {};         // Error
+  ```
+
+- **Shallow clone** — `Object.assign(target, source)` copies top-level properties only; nested objects are still shared by reference
+  ```js
+  let clone = Object.assign({}, user);
+  ```
+
+- **Deep clone** — `structuredClone(obj)` fully copies all nested objects; handles circular references but cannot clone functions
+  ```js
+  let deepClone = structuredClone(user);
+  ```
+
+### Object Methods & `this` — Functions inside objects
+
+- A function stored as an object property is called a **method**
+- **Method shorthand** — omit the `function` keyword (preferred)
+  ```js
+  let user = {
+    name: 'Alice',
+    greet() {             // shorthand
+      console.log('Hi, I am ' + this.name);
+    },
+  };
+  ```
+
+- **`this` is bound at call time, not definition time** (key difference from Python's `self`)
+  - `this` refers to the object *before the dot* at the moment of the call
+  - The same function called through different objects gets a different `this`
+  ```js
+  function sayHi() { console.log(this.name); }
+
+  let alice = { name: 'Alice', say: sayHi };
+  let bob   = { name: 'Bob',   say: sayHi };
+
+  alice.say(); // 'Alice'
+  bob.say();   // 'Bob'
+  ```
+
+- Calling without an object context: `this` is `undefined` (strict mode) or the global object — a common source of bugs
+  ```js
+  let say = alice.say;
+  say(); // undefined — no object before the dot
+  ```
+
+- **Arrow functions have no own `this`** — they inherit `this` from the surrounding scope, useful in callbacks
+  ```js
+  let user = {
+    name: 'Alice',
+    greet() {
+      let inner = () => console.log(this.name); // this = user
+      inner();
+    }
+  };
+  user.greet(); // 'Alice'
+  ```
+
+### Constructor Functions & `new` — Create multiple similar objects
+
+- A constructor is a regular function named with a **capital letter**, called with `new` (like a class in Python)
+- `new` automatically: creates an empty object → assigns it to `this` → runs the function body → returns `this`
+  ```js
+  function User(name) {
+    this.name = name;
+    this.isAdmin = false;
+  }
+
+  let alice = new User('Alice');
+  let bob   = new User('Bob');
+  ```
+
+### Optional Chaining — Safely access possibly-missing properties
+
+Three forms, all return `undefined` instead of throwing if the left side is `null`/`undefined`:
+
+- **`obj?.prop`** — safe property access
+  ```js
+  user?.address?.street  // undefined if user or address is missing
+  ```
+- **`obj?.[key]`** — safe bracket notation
+  ```js
+  user?.['firstName']
+  ```
+- **`obj.method?.()`** — safe method call
+  ```js
+  userGuest.admin?.()  // does nothing if admin method doesn't exist
+  ```
+
+### Symbols — Guaranteed unique identifiers
+
+- Created with `Symbol(description)` — the description is just a label for debugging, not the value
+- Every symbol is **always unique**, even if two have the same description
+  ```js
+  Symbol('id') === Symbol('id') // false
+  ```
+- Symbols don't auto-convert to strings — use `.toString()` or `.description` to display them
+- Used as object property keys to avoid name collisions (e.g. when adding properties to third-party objects)
+  ```js
+  let id = Symbol('id');
+  user[id] = 123; // hidden from other code using string keys
+  ```
+- **Symbols are skipped** by `for...in` and `Object.keys()` — they stay "hidden" from normal iteration
+- **Global symbol registry** — `Symbol.for(key)` creates/reuses the same symbol across the whole app; `Symbol.keyFor(sym)` looks up its key
+  ```js
+  let s1 = Symbol.for('shared');
+  let s2 = Symbol.for('shared');
+  s1 === s2; // true
+  ```
+- **Well-known symbols** like `Symbol.iterator` and `Symbol.toPrimitive` let you customize built-in JS behaviors
+
+### Object-to-Primitive Conversion — How objects become primitives
+
+- JS uses a **hint** to decide how to convert an object:
+  - `"string"` — when a string is expected (e.g. `alert(obj)`, using obj as a key)
+  - `"number"` — for math operations and numeric comparisons
+  - `"default"` — for ambiguous operators like binary `+` or `==`
+
+- Conversion priority (JS checks in this order):
+  1. `Symbol.toPrimitive(hint)` — if defined, handles all hints in one method
+  2. `toString()` then `valueOf()` for `"string"` hint (reversed for `"number"`)
+  ```js
+  let user = {
+    name: 'Alice',
+    [Symbol.toPrimitive](hint) {
+      return hint === 'string' ? this.name : 42;
+    }
+  };
+  alert(user);  // 'Alice'  (string hint)
+  +user;        // 42       (number hint)
+  ```
+
+- If only `toString()` is defined, it handles all conversion contexts
+- Conversion methods must return a **primitive** — returning an object is ignored
+- **Further conversions**: the returned primitive may be coerced again (e.g. a string returned from `+` might get converted to a number for a later `*`)
+
+### Primitive Methods — How primitives can have methods
+
+- Unlike Python (where everything is an object), JS primitives are lightweight values — but they still support methods
+- When you call a method on a primitive, JS **temporarily wraps it** in an object, runs the method, then discards the wrapper immediately
+  ```js
+  'hello'.toUpperCase(); // 'HELLO' — a String wrapper is created and thrown away
+  (1.5).toFixed(0);      // '2'    — a Number wrapper is created and thrown away
+  ```
+- Wrapper types: `String`, `Number`, `Boolean`, `Symbol`, `BigInt`
+- `null` and `undefined` have no wrappers — accessing any property on them throws an error
+
+- **Never use `new Number()` / `new String()`** — they create objects, not primitives, causing subtle bugs:
+  ```js
+  typeof new Number(0)  // 'object' (not 'number'!)
+  if (new Number(0)) {} // always true — objects are truthy, even zero
+  ```
+- Use `Number()` / `String()` **without `new`** for type conversion — that returns a primitive
+
+### Numbers — Working with numeric values
+
+- Use `_` as a visual separator for readability: `1_000_000`
+- `num.toString(base)` — converts a number to a string in the given base; calling directly on a literal needs two dots or parentheses
+  ```js
+  (255).toString(16); // 'ff'
+  (255).toString(2);  // '11111111'
+  123..toString(2);   // two dots needed when calling on a bare literal
+  ```
+
+- **Rounding methods**:
+  ```js
+  Math.floor(3.7);      // 3  — always rounds down
+  Math.ceil(3.1);       // 4  — always rounds up
+  Math.round(3.5);      // 4  — rounds to nearest
+  Math.trunc(3.9);      // 3  — removes decimal part (no rounding)
+  (3.141).toFixed(2);   // '3.14' — rounds to n decimal places, returns a string
+  ```
+
+- **Checking special values**:
+  ```js
+  isNaN('str');      // true  — converts to number first, then checks
+  isFinite('15');    // true  — '15' converts to 15, which is finite
+  isFinite(Infinity) // false
+  ```
+
+- **Parsing numbers from strings** — stops at the first non-numeric character (useful for CSS values):
+  ```js
+  parseInt('100px');   // 100
+  parseFloat('12.3em'); // 12.3
+  parseInt('a123');    // NaN — fails immediately if it starts with non-digit
+  ```
+
+### Strings — Working with text
+
+- Use backticks `` ` `` for multiline strings and template literals; single/double quotes cannot span lines
+- `.length` is a **property**, not a method (no parentheses)
+- Access characters with `[pos]` or `.at(pos)`; use `.at(-1)` for the last character — `[-1]` returns `undefined`
+  ```js
+  let str = 'Hello';
+  str[0];    // 'H'
+  str.at(-1); // 'o'
+  str[-1];   // undefined
+  ```
+
+- Iterate over characters with `for...of`
+- Strings are **immutable** — you can't change individual characters, only create new strings
+
+- **Case conversion**:
+  ```js
+  'hello'.toUpperCase(); // 'HELLO'
+  'Interface'[0].toLowerCase(); // 'i'
+  ```
+
+- **Searching**:
+  ```js
+  let str = 'Widget with id';
+  str.indexOf('Widget'); // 0  — returns index or -1 if not found
+  str.includes('with');  // true — returns boolean
+  ```
+
+- **Slicing** — `str.slice(start, end)` extracts a substring; negative values count from the end
+  ```js
+  let str = 'stringify';
+  str.slice(0, 5);  // 'strin'  — from 0 up to (not including) 5
+  str.slice(2);     // 'ringify' — from index 2 to end
+  str.slice(-4);    // 'gify'   — last 4 characters
+  str.slice(-4, -1) // 'gif'    — negative start to negative end
+  ```
+
+### Arrays — Ordered list of values (like Python lists)
+
+- Create with `[]`; elements can be mixed types
+  ```js
+  let arr = [1, 'hello', true];
+  arr[0];      // 1
+  arr.at(-1);  // true — last element; arr[-1] returns undefined
+  ```
+
+- **Queue / stack methods** (all mutate the original array):
+  ```js
+  arr.push('x');    // add to end     (like Python list.append)
+  arr.pop();        // remove from end (like Python list.pop)
+  arr.unshift('x'); // add to front   (like Python list.insert(0, x))
+  arr.shift();      // remove from front
+  ```
+
+- **Iterating** — use `for...of` (not `for...in`; `for...in` is for objects and has unexpected behavior on arrays)
+  ```js
+  for (let item of arr) {
+    console.log(item);
+  }
+  ```
+
+- **`length`** — not the count of elements but the greatest numeric index plus one; can be set manually
+  ```js
+  arr.length = 0; // empties the array
+  ```
+
+- **`toString`** — converts to a comma-separated string
+  ```js
+  [1, 2, 3].toString(); // '1,2,3'
+  ```
+
+- **Never compare arrays with `==`** — arrays are objects, so `==` checks reference identity, not contents
+  ```js
+  [] == []  // false — two different objects
+  ```
+
+### Array Methods: Modify & Combine — splice, slice, concat
+
+- **`splice(pos, deleteCount, ...items)`** — removes `deleteCount` elements at `pos`, optionally inserts `...items`; **mutates** the original, returns the removed elements
+  ```js
+  let arr = ['I', 'study', 'JavaScript'];
+  arr.splice(1, 1);                 // removes 'study' → ['I', 'JavaScript']
+  arr.splice(1, 0, 'also', 'love'); // inserts without removing
+  arr.splice(-1, 1);                // negative index: counts from the end
+  ```
+
+- **`slice(start, end)`** — returns a **new** array with elements from `start` up to (not including) `end`; negative indices count from the end; does not mutate
+  ```js
+  let arr = ['t', 'e', 's', 't'];
+  arr.slice(1, 3);  // ['e', 's']
+  arr.slice(-2);    // ['s', 't']
+  ```
+
+- **`concat(...items)`** — returns a **new** array combining the current array with `...items`; array arguments are spread in, other values are appended as single items
+  ```js
+  [1, 2].concat([3, 4], 5); // [1, 2, 3, 4, 5]
+  ```
+
+### Array Methods: Search & Iterate — indexOf, find, filter, forEach
+
+- **`indexOf(item, from)` / `lastIndexOf(item, from)`** — returns the first/last index of `item` using strict equality (`===`), or `-1` if not found
+  ```js
+  let arr = [1, 0, false, 1];
+  arr.indexOf(1);      // 0
+  arr.lastIndexOf(1);  // 3
+  ```
+
+- **`includes(value)`** — returns `true` if the array contains `value`; handles `NaN` correctly (unlike `indexOf`)
+  ```js
+  [NaN].includes(NaN); // true
+  [NaN].indexOf(NaN);  // -1 (indexOf can't find NaN)
+  ```
+
+- **`find(func)` / `findIndex(func)`** — returns the **first** element (or its index) where `func` returns truthy; `undefined` / `-1` if nothing matches
+  ```js
+  let users = [{ id: 1, name: 'Alice' }, { id: 2, name: 'Bob' }];
+  users.find(u => u.id === 2);      // { id: 2, name: 'Bob' }
+  users.findIndex(u => u.id === 2); // 1
+  ```
+
+- **`filter(func)`** — returns a **new** array of all elements where `func` returns truthy (like Python's `filter`)
+  ```js
+  users.filter(u => u.id < 2); // [{ id: 1, name: 'Alice' }]
+  ```
+
+- **`forEach(func)`** — calls `func(item, index, array)` for every element; always returns `undefined` — use only for side effects
+  ```js
+  ['Bilbo', 'Gandalf'].forEach((name, i) => console.log(i, name));
+  ```
+
+### Array Methods: Transform — map, sort, reverse, split/join, reduce
+
+- **`map(func)`** — returns a **new** array where each element is the result of `func(item)`; does not mutate (like Python list comprehensions)
+  ```js
+  ['Bilbo', 'Gandalf'].map(name => name.length); // [5, 7]
+  ```
+
+- **`sort(func)`** — sorts the array **in place** (mutates); without a comparator it converts elements to strings first — always pass a comparator for numbers
+  ```js
+  [1, 10, 2].sort();                 // [1, 10, 2] — wrong! (string sort)
+  [1, 10, 2].sort((a, b) => a - b);  // [1, 2, 10] — correct numeric sort
+  ```
+
+- **`reverse()`** — reverses the array **in place** (mutates); also returns a reference to the same array
+  ```js
+  [1, 2, 3].reverse(); // [3, 2, 1]
+  ```
+
+- **`str.split(delim)` / `arr.join(glue)`** — `split` breaks a string into an array; `join` combines an array into a string
+  ```js
+  'Bilbo, Gandalf'.split(', ');       // ['Bilbo', 'Gandalf']
+  ['Bilbo', 'Gandalf'].join(' and '); // 'Bilbo and Gandalf'
+  'hi'.split('');                     // ['h', 'i'] — splits into characters
+  ```
+
+- **`reduce(func, initial)` / `reduceRight(func, initial)`** — accumulates all elements into a single value; `func` receives `(accumulator, item, index, array)`; `reduceRight` processes right-to-left
+  ```js
+  [1, 2, 3, 4, 5].reduce((sum, n) => sum + n, 0); // 15
+  ```
+  - Always provide the `initial` value — omitting it throws on empty arrays
+
+### Array Methods: Other — isArray, some, every, flat, fill, copyWithin
+
+- **`Array.isArray(value)`** — returns `true` if `value` is an array; necessary because `typeof []` returns `'object'`
+  ```js
+  Array.isArray([]);  // true
+  Array.isArray({});  // false
+  typeof [];          // 'object' — not useful for distinguishing arrays
+  ```
+
+- **`some(func)` / `every(func)`** — `some` returns `true` if *at least one* element passes; `every` returns `true` if *all* pass; both short-circuit on the first decisive result
+  ```js
+  [1, 2, 3].some(n => n > 2);  // true
+  [1, 2, 3].every(n => n > 0); // true
+  ```
+
+- **`flat(depth)` / `flatMap(func)`** — `flat` flattens nested arrays up to `depth` levels (default 1); `flatMap` maps then flattens one level in one pass
+  ```js
+  [[1, 2], [3, 4]].flat();         // [1, 2, 3, 4]
+  [1, 2].flatMap(n => [n, n * 2]); // [1, 2, 2, 4]
+  ```
+
+- **`fill(value, start, end)`** — fills elements from `start` to `end` with `value` **in place**
+  ```js
+  new Array(3).fill(0);        // [0, 0, 0]
+  [1, 2, 3, 4].fill(0, 1, 3); // [1, 0, 0, 4]
+  ```
+
+- **`copyWithin(target, start, end)`** — copies a slice of the array to `target` position **in place**, overwriting existing elements; rarely used in everyday code
+  ```js
+  [1, 2, 3, 4, 5].copyWithin(0, 3); // [4, 5, 3, 4, 5]
+  ```
+
+### Iterables — Objects usable with for...of
+
+- Any object can be made iterable by adding a **`Symbol.iterator`** method that returns an **iterator** — an object with a `next()` method
+- `for...of` calls `Symbol.iterator` automatically; you can also call it manually for fine-grained control
+- The iterator protocol: `next()` must return `{ value: any, done: boolean }` — `done: true` signals the end
+  ```js
+  let range = {
+    from: 1,
+    to: 5,
+    [Symbol.iterator]() {
+      this.current = this.from;
+      return this; // the object itself is the iterator
+    },
+    next() {
+      if (this.current <= this.to) {
+        return { done: false, value: this.current++ };
+      } else {
+        return { done: true };
+      }
+    }
+  };
+
+  for (let num of range) console.log(num); // 1, 2, 3, 4, 5
+  ```
+
+- **Calling the iterator manually** — useful when you need to pause/resume iteration
+  ```js
+  let iterator = 'Hello'[Symbol.iterator]();
+  iterator.next(); // { value: 'H', done: false }
+  iterator.next(); // { value: 'e', done: false }
+  // ...
+  ```
+
+- **Strings are iterable** and their iterator correctly handles surrogate pairs (emoji, rare Unicode chars); `str[index]` does not
+  ```js
+  for (let char of '𝒳😂') console.log(char); // '𝒳', '😂' — 2 items, not 4 bytes
+  ```
+
+- **Iterables vs array-likes** — two separate concepts that often overlap but are not the same:
+  - **Iterable** — has `Symbol.iterator`; works with `for...of` (e.g. strings, arrays, `range` above)
+  - **Array-like** — has numeric indexes and a `length` property; does *not* automatically work with `for...of`
+  ```js
+  let arrayLike = { 0: 'Hello', 1: 'World', length: 2 };
+  for (let item of arrayLike) {} // TypeError — no Symbol.iterator
+  ```
+  - Arrays and strings are **both** iterable and array-like; many other objects are one or the other
+
+### Array.from — Convert iterables and array-likes to real arrays
+
+- **`Array.from(obj)`** — creates a real array from any iterable or array-like; unlocks all array methods on objects that don't have them
+  ```js
+  let arrayLike = { 0: 'Hello', 1: 'World', length: 2 };
+  let arr = Array.from(arrayLike);
+  arr.pop(); // 'World' — now a real array
+  ```
+
+- **`Array.from(obj, mapFn)`** — optional second argument maps each element during conversion (like combining `Array.from` + `map` in one step)
+  ```js
+  Array.from(range, n => n * n); // [1, 4, 9, 16, 25]
+  ```
+
+- **Correct Unicode splitting** — `Array.from` uses the string iterator, so it handles surrogate pairs properly; `str.split('')` does not
+  ```js
+  Array.from('𝒳😂'); // ['𝒳', '😂'] — 2 elements
+  '𝒳😂'.split('');   // ['', '', '', ''] — 4 broken bytes
+  ```
+
+### Map — Key-value collection with any key type (like Python dict, but keys can be anything)
+
+- Like a plain object, but **any value can be a key** — including objects, functions, and `NaN`; keys are never converted to strings
+- **`new Map()`** — creates an empty map; or pass an array of `[key, value]` pairs to initialize
+  ```js
+  let map = new Map([['one', 1], ['two', 2]]);
+  ```
+
+- **Core methods**:
+  - **`map.set(key, value)`** — stores a value; returns the map itself, so calls can be chained
+  - **`map.get(key)`** — returns the value, or `undefined` if the key doesn't exist
+  - **`map.has(key)`** — returns `true` / `false`
+  - **`map.delete(key)`** — removes the entry; returns `true` if the key existed
+  - **`map.clear()`** — removes all entries
+  - **`map.size`** — number of entries (a property, not a method)
+  ```js
+  let map = new Map();
+  map.set('name', 'Alice').set(1, 'one').set(true, 'yes'); // chaining
+  map.get('name'); // 'Alice'
+  map.get(1);      // 'one'
+  map.size;        // 3
+  ```
+
+- **Object keys** — this is the key advantage over plain objects
+  ```js
+  let user = { id: 1 };
+  map.set(user, 'profile data');
+  map.get(user); // 'profile data'
+  ```
+
+- **Iteration** — always in insertion order (same as Python dicts since 3.7)
+  - **`map.keys()`** — iterable of keys
+  - **`map.values()`** — iterable of values
+  - **`map.entries()`** — iterable of `[key, value]` pairs; this is the default for `for...of`
+  - **`map.forEach((value, key) => {})`** — note: value comes first (opposite of what you might expect)
+  ```js
+  for (let [key, value] of map) console.log(key, value);
+  map.forEach((value, key) => console.log(key, value));
+  ```
+
+- **Converting between Object and Map**:
+  ```js
+  let obj = { a: 1, b: 2 };
+  let map = new Map(Object.entries(obj));  // Object → Map
+  let back = Object.fromEntries(map);      // Map → Object
+  ```
+
+### Set — Collection of unique values (like Python set)
+
+- Stores values with **no duplicates**; adding the same value twice is silently ignored
+- Iteration is in **insertion order** (unlike Python sets)
+- Faster uniqueness checks than an array — use a Set instead of an array when you need to track membership
+
+- **`new Set()`** — creates an empty set; or pass any iterable to initialize
+  ```js
+  let set = new Set([1, 2, 3, 2, 1]); // {1, 2, 3} — duplicates dropped
+  ```
+
+- **Core methods**:
+  - **`set.add(value)`** — adds a value; returns the set itself (chainable); no-op if value already exists
+  - **`set.delete(value)`** — removes a value; returns `true` if it existed
+  - **`set.has(value)`** — returns `true` / `false`
+  - **`set.clear()`** — removes all entries
+  - **`set.size`** — number of entries
+  ```js
+  let set = new Set();
+  set.add('a').add('b').add('a'); // {'a', 'b'} — second 'a' ignored
+  set.has('b'); // true
+  set.size;     // 2
+  ```
+
+- **Iteration** — `for...of` and `forEach` both work; `set.keys()`, `set.values()`, and `set.entries()` exist for Map compatibility (keys/values are the same thing in a Set)
+  ```js
+  for (let value of set) console.log(value);
+  ```
+
+- **Common pattern — deduplicate an array**:
+  ```js
+  let arr = [1, 2, 2, 3, 3, 3];
+  let unique = Array.from(new Set(arr)); // [1, 2, 3]
+  // or: [...new Set(arr)]
+  ```
+
+### Destructuring Assignment — Unpack arrays and objects into variables
+
+- **Array destructuring** — match by position; works with any iterable (array, string, Set, Map)
+  ```js
+  let [firstName, surname] = 'John Smith'.split(' ');
+  let [a, , c] = [1, 2, 3];      // skip with extra comma → c = 3
+  [guest, admin] = [admin, guest]; // swap variables, no temp needed
+  ```
+
+- **Object destructuring** — match by property name (order doesn't matter)
+  ```js
+  let { title, width, height } = options;
+  let { width: w, height: h } = options; // rename: "what : goes where"
+  ```
+
+- **Gotcha** — without `let`/`const`, wrap in parentheses or `{...}` is treated as a code block
+  ```js
+  ({ title, width } = { title: 'Menu', width: 200 });
+  ```
+
+- **Default values** — `=` kicks in when the value is `undefined`; works for both arrays and objects
+  ```js
+  let [name = 'Guest'] = [];           // name = 'Guest'
+  let { width: w = 100 } = {};         // w = 100 (rename + default combined)
+  ```
+
+- **Rest pattern `...`** — gather remaining items/properties; must be last
+  ```js
+  let [first, ...rest] = [1, 2, 3, 4];        // rest = [2, 3, 4]
+  let { title, ...rest } = options;           // rest = remaining properties object
+  ```
+
+- **Nested destructuring** — match the shape on the left; intermediate objects (like `size`, `items`) are not created as variables
+  ```js
+  let { size: { width }, items: [first] } = options;
+  ```
+
+- **Smart function parameters** — destructure in the signature; `= {}` prevents error on missing argument
+  ```js
+  function show({ title = 'Menu', width = 100 } = {}) {}
+  show();           // uses all defaults
+  show({ title: 'A' }); // named arguments, any order
+  ```
