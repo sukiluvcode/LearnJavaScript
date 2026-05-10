@@ -878,3 +878,237 @@ Three forms, all return `undefined` instead of throwing if the left side is `nul
   show();           // uses all defaults
   show({ title: 'A' }); // named arguments, any order
   ```
+
+### JSON — Serialize and deserialize data (language-independent format)
+
+- **`JSON.stringify(value, replacer?, space?)`** — converts a JS value to a JSON string; double quotes only
+- Supported types: objects, arrays, strings, numbers, booleans, `null`
+- **Skipped silently**: functions, symbol keys/values, `undefined` properties
+- **Circular references** throw `"Converting circular structure to JSON"`
+- `new Date(...)` is invalid — use bare values only; no comments allowed in JSON
+- Single quotes and unquoted property names are invalid in JSON (JSON5 relaxes this but is a separate library)
+
+```js
+JSON.stringify(1);              // "1"
+JSON.stringify('test');         // ""test"" — string values get double-quoted
+JSON.stringify([1, 2, 3]);      // "[1,2,3]"
+
+let meetup = { title: "Conference", room: { number: 23 } };
+JSON.stringify(meetup);
+// {"title":"Conference","room":{"number":23}}
+```
+
+- **Replacer (2nd arg)**: an array of keys to include, or a function `(key, value)` returning the replacement (return `undefined` to skip); first call wraps whole object as `{ "": value }`
+  ```js
+  JSON.stringify(obj, ['title', 'name']);  // array — only those keys
+  JSON.stringify(obj, (key, val) => key == 'occupiedBy' ? undefined : val); // function
+  ```
+
+- **Space (3rd arg)**: number (indent spaces) or string for pretty-printing
+  ```js
+  JSON.stringify(obj, null, 2); // 2-space indent
+  ```
+
+- **Custom `toJSON()`** — if an object has this method, `JSON.stringify` calls it; `Date` has a built-in `toJSON` that produces an ISO string (e.g. `"2017-01-01T00:00:00.000Z"`)
+  ```js
+  let room = { number: 23, toJSON() { return this.number; } };
+  JSON.stringify(room); // "23"
+  ```
+
+- **`JSON.parse(str, reviver?)`** — parses a JSON string back to a JS value
+  ```js
+  let user = JSON.parse('{ "name": "John", "age": 35 }');
+  user.age; // 35
+  ```
+
+- **Reviver (2nd arg)** — function `(key, value)` to transform values during parse; commonly used to revive dates (JSON strings don't auto-convert to `Date`)
+  ```js
+  let str = '{"date":"2017-11-30T12:00:00.000Z"}';
+  let obj = JSON.parse(str, (key, value) => key == 'date' ? new Date(value) : value);
+  obj.date.getDate(); // works — now a real Date
+  ```
+
+### Rest Parameters & Spread Syntax — `...` in function definitions vs calls
+
+- **Rest parameters `...`** — in a function **definition**, gathers remaining arguments into a real array; must be **last**
+  ```js
+  function sumAll(...args) {       // args = [1, 2, 3]
+    return args.reduce((s, n) => s + n, 0);
+  }
+  sumAll(1, 2, 3); // 6
+
+  function show(first, last, ...titles) {} // first two named, rest in titles array
+  ```
+
+- **Spread syntax `...`** — in a function **call** or array/object literal, expands an iterable into individual elements (the inverse of rest)
+  ```js
+  Math.max(...[3, 5, 1]);          // same as Math.max(3, 5, 1) → 5
+  Math.max(1, ...arr1, 2, ...arr2); // can mix spread with normal values
+  ```
+
+- **Merge / copy arrays and objects** — spread creates shallow copies, preferred over `Object.assign`
+  ```js
+  let merged = [0, ...arr1, 2, ...arr2];
+  let arrCopy = [...arr];
+  let objCopy = { ...obj };
+  ```
+
+- **String to characters** — spread uses the string iterator, so it handles Unicode correctly
+  ```js
+  [...'Hello']; // ['H', 'e', 'l', 'l', 'o']
+  ```
+
+- **Spread vs `Array.from`** — spread works only with iterables; `Array.from` works with both array-likes and iterables (more universal)
+
+- **The `arguments` variable** (legacy) — array-like, iterable, not a real array; arrow functions don't have it; rest parameters are preferred
+
+### Block Scope with `{}` — Braces as scope, not just syntax
+
+- In JavaScript, `{}` creates a **block** — a unit of scope. This happens inside `if`, `for`, `while`, and so on, but you can also use `{}` **standalone** to create a new scope without any control-flow statement. Python has no equivalent: indentation defines blocks there, and there's no way to create a standalone scope just with braces.
+
+- Unlike Python:
+  - Python uses **indentation** to define blocks; JS uses **braces** `{}`
+  - Python does not have standalone block scoping — variables defined inside `if`/`for`/`while` are still accessible outside
+  - JS with `let`/`const` confines variables to the nearest enclosing block `{}`; Python variables leak out of `if`/`for` bodies
+
+  ```js
+  // Standalone block — creates a separate scope
+  {
+    let message = 'Hello';
+    console.log(message); // 'Hello'
+  }
+  console.log(message); // ReferenceError — message is not defined
+
+  // In Python, this equivalent would still have message visible outside.
+  ```
+
+- **`let` / `const` are block-scoped** — they only exist inside the `{}` where they're declared:
+  ```js
+  if (true) {
+    let x = 10;
+    const y = 20;
+  }
+  console.log(x); // ReferenceError
+  ```
+
+- **`var` ignores block scope** — `var` is function-scoped only, not block-scoped. This is a key reason to avoid it:
+  ```js
+  if (true) {
+    var x = 10;
+  }
+  console.log(x); // 10 — var leaks out of the block
+  ```
+
+- **Blocks in loops** — each iteration of a `for` loop with `let` gets its own fresh binding (not true for `var`):
+  ```js
+  for (let i = 0; i < 3; i++) {
+    setTimeout(() => console.log(i), 0); // 0, 1, 2 — each callback sees its own i
+  }
+  for (var i = 0; i < 3; i++) {
+    setTimeout(() => console.log(i), 0); // 3, 3, 3 — all share the same i
+  }
+  ```
+
+### Lexical Environment — The mechanism behind scope and hoisting
+
+- A **Lexical Environment** is an internal object that JS creates whenever a block, function, or script runs. It has two parts:
+  1. **Environment Record** — stores all local variables, function parameters, and `this` binding
+  2. **Outer reference** — a pointer to the outer Lexical Environment (the environment enclosing this one)
+
+- This is why function **declarations** are instantly available (hoisted) but function **expressions** are not:
+
+- **When a script starts**, JS creates the global Lexical Environment. During this initial setup, it scans for all `function` **declarations** and immediately initializes them — they are fully created and callable before any code executes.
+
+  ```js
+  // This works — declaration was initialized during environment setup
+  sayHi(); // 'Hi'
+  function sayHi() { console.log('Hi'); }
+  ```
+
+- **Function expressions** are just variable assignments. The variable exists (or goes through TDZ for `let`/`const`), but the function value isn't assigned until the line runs:
+
+  ```js
+  greet(); // Error — greet is in TDZ (let) or undefined (var)
+  let greet = function() { console.log('Hello'); }; // assignment happens here
+  ```
+
+- **Step by step** what happens:
+  1. Script starts → global Lexical Environment created
+  2. All function declarations are scanned and initialized immediately → `sayHi` is a function
+  3. All `let`/`const` variables are registered but **uninitialized** (TDZ — Temporal Dead Zone) → `greet` exists but can't be accessed
+  4. `var` variables are registered and initialized to `undefined` → accessible but worthless until assignment
+  5. Code executes line by line → `greet` gets its function value only when the assignment line runs
+
+- **When a function is called**, a new Lexical Environment is created for that call's local variables, with its outer reference pointing to the environment where the function was **created** (not called). This outer reference chain is what makes closures work.
+
+### Closures — Functions that remember their outer variables
+
+- A **closure** is a function that remembers and can access variables from its outer scope, even after that outer scope has finished executing.
+
+- In JavaScript, **all functions are closures** — every function has a hidden `[[Environment]]` internal property that points to the Lexical Environment where the function was **created** (not where it's called). This is set once at creation time and never changes.
+
+- **How it works**:
+  1. When a function is **created**, it stores `[[Environment]]` = the current Lexical Environment
+  2. When the function is **called**, a new Lexical Environment is created for that call
+  3. That new environment's outer reference is set to the function's `[[Environment]]`
+  4. Variable lookup: search current environment → outer reference → outer's outer → ... → global
+  5. If a variable is not found anywhere, it's an error (strict mode) or creates a global (non-strict)
+
+- **Classic example — counter factory**:
+  ```js
+  function makeCounter() {
+    let count = 0;                    // local to makeCounter
+    return function() {               // inner function created here
+      return ++count;                 // accesses count from outer scope
+    };
+  }
+
+  let counter = makeCounter();        // makeCounter() returns, but count lives on
+  console.log(counter()); // 1        // inner function still has access via closure
+  console.log(counter()); // 2
+  console.log(counter()); // 3
+  ```
+
+- **Why `count` survives**: after `makeCounter()` returns, its execution context is gone, but the Lexical Environment is kept alive because the inner function's `[[Environment]]` still references it. The garbage collector can't reclaim it as long as the inner function is reachable.
+
+- **Each closure gets its own environment** — calling the outer function again creates a **new** Lexical Environment, so closures are independent:
+  ```js
+  let c1 = makeCounter();
+  let c2 = makeCounter();
+  c1(); // 1
+  c1(); // 2
+  c2(); // 1 — separate count
+  ```
+
+- **Closures capture the variable itself, not a snapshot** — if the variable changes later, the closure sees the current value:
+  ```js
+  let name = 'Alice';
+  function getName() { return name; }
+  name = 'Bob';
+  getName(); // 'Bob' — not 'Alice', because it accesses the live variable
+  ```
+
+- **Closures in loops — the `var` trap**:
+  ```js
+  for (var i = 0; i < 3; i++) {
+    setTimeout(() => console.log(i), 0);
+  }
+  // Prints: 3, 3, 3 — all closures share the same i (var is function-scoped)
+  ```
+  Fix: use `let` (block-scoped, each iteration gets its own binding):
+  ```js
+  for (let i = 0; i < 3; i++) {
+    setTimeout(() => console.log(i), 0);
+  }
+  // Prints: 0, 1, 2 — each closure sees its own i
+  ```
+
+- **Immediately-Invoked Function Expression (IIFE)** — an older pattern that uses closures to create private scope before `let`/`const` existed (now largely replaced by blocks with `let`):
+  ```js
+  (function() {
+    let privateVar = 'hidden';
+    // privateVar is only visible here
+  })();
+  ```
+
+- **Closures are used everywhere** in JS: event handlers, callbacks, module patterns, `setTimeout`, promises, and any time a function references variables outside its own body.
