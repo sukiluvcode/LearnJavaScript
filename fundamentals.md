@@ -1112,3 +1112,252 @@ JSON.stringify(meetup);
   ```
 
 - **Closures are used everywhere** in JS: event handlers, callbacks, module patterns, `setTimeout`, promises, and any time a function references variables outside its own body.
+
+### Scheduling: setTimeout & setInterval — Run code later / repeatedly
+
+**`setTimeout(func, delay?, ...args)`** — runs `func` once after `delay` ms.
+
+```js
+let timerId = setTimeout(() => alert('Hello'), 1000);
+setTimeout(sayHi, 1000, "Hello", "John"); // args passed to func
+```
+
+- **Common mistake**: `setTimeout(sayHi(), 1000)` — calls `sayHi` immediately, passes its return value (not the function). Pass the reference: `setTimeout(sayHi, 1000)`.
+- **`clearTimeout(timerId)`** — cancels a pending timeout. The identifier doesn't become null after canceling.
+
+**`setInterval(func, delay?, ...args)`** — runs `func` repeatedly every `delay` ms. Stopped with **`clearInterval(timerId)`**.
+
+**`setTimeout(func, 0)`** — schedules `func` to run as soon as possible, but **after the current script finishes**:
+```js
+setTimeout(() => alert("World"), 0);
+alert("Hello");
+// Output: Hello → World
+```
+
+- Browser limitation: after 5 nested timers, the delay is forced to **≥ 4ms** (HTML spec). Node.js does not have this limit; it also offers `setImmediate`.
+
+**Nested `setTimeout` vs `setInterval`**:
+- `setInterval`: next call is queued every `delay` ms regardless of how long the function takes. If the function runs longer than the interval, calls stack up and fire with zero pause between them.
+- Nested `setTimeout`: each call schedules the next only after completing, guaranteeing a pause **between** executions (not between starts). Use this when:
+  - You need dynamic delays (e.g., exponential backoff)
+  - The function is CPU-heavy and you need guaranteed spacing
+  - You want precision between end of one call and start of next
+
+```js
+// Nested setTimeout pattern
+let timerId = setTimeout(function tick() {
+  // do work
+  timerId = setTimeout(tick, 2000);
+}, 2000);
+```
+
+**No exact timing guarantee** — delays can increase due to CPU load, background tabs, or battery-saving mode (up to 300–1000ms in some cases).
+
+**Garbage collection** — `setTimeout`/`setInterval` hold an internal reference to the function, keeping it and its outer lexical environment alive. Always `clearTimeout`/`clearInterval` when done.
+
+**alert() and timers** — `alert`/`confirm`/`prompt` are modal but the internal timer keeps ticking. If you dismiss an alert after several seconds, the next interval fires immediately.
+
+### Function Binding: bind — Fix `this` and partially apply arguments
+
+**`func.bind(context, ...args)`** — returns a new function with `this` permanently set to `context` and optional leading arguments pre-filled.
+
+```js
+let boundFunc = func.bind(context);
+let bound = func.bind(context, arg1, arg2);  // partial application
+```
+
+**Primary use: fixing `this` for callbacks.** When a method is passed somewhere (e.g., `setTimeout`), it loses its object context:
+
+```js
+let user = {
+  firstName: "John",
+  sayHi() { console.log(`Hello, ${this.firstName}!`); }
+};
+setTimeout(user.sayHi, 1000);        // Hello, undefined! — this is lost
+setTimeout(user.sayHi.bind(user), 1000); // Hello, John! — this is fixed
+```
+
+A wrapper (`() => user.sayHi()`) works too, but is vulnerable if `user` changes before the callback fires. `bind` captures the object at binding time, making it safer.
+
+**Partial application** — fix leading arguments without touching `this`. Pass `null` as context when `this` isn't needed:
+
+```js
+function mul(a, b) { return a * b; }
+let double = mul.bind(null, 2);
+double(3); // 6
+double(4); // 8
+let triple = mul.bind(null, 3);
+triple(3); // 9
+```
+
+Useful for creating specialized functions from generic ones (e.g., `sendTo(to, text)` from `send(from, to, text)`).
+
+**Custom `partial` without context** — native `bind` forces you to provide a context. For partial-only binding that preserves `this` dynamically:
+
+```js
+function partial(func, ...argsBound) {
+  return function(...args) {
+    return func.call(this, ...argsBound, ...args);
+  };
+}
+// this is passed through from the call site, argsBound are fixed
+```
+
+**Key gotchas**:
+- **Context is immutable** — once bound, `this` can never be changed, not even by re-binding or calling as a method on another object
+- **First bind wins** — `f.bind(a).bind(b)` still uses `a`; re-binding has no effect
+- **Own properties are lost** — `bind` creates a new object; custom properties on the original function are not carried over
+- In non-strict mode, `null` context becomes the global object (usually irrelevant for partials)
+
+### Arrow Functions Revisited — No `this`, no `arguments`, no `new`
+
+Beyond shorter syntax (covered earlier), arrow functions differ from regular functions in key ways:
+
+**No own `this`** — arrow functions take `this` from the enclosing scope (lexical `this`). This is why they shine as callbacks inside methods:
+
+```js
+let group = {
+  title: "Our Group",
+  students: ["John", "Pete", "Alice"],
+  showList() {
+    // arrow: this = group (from showList)
+    this.students.forEach(student => console.log(this.title + ': ' + student));
+  }
+};
+```
+
+A regular function inside `forEach` would have `this = undefined` (strict mode). Arrow functions avoid this entirely — they don't create a binding, they just look up `this` like any other variable.
+
+Contrast with `.bind(this)`: bind creates a wrapper with fixed context; arrow functions simply don't *have* `this` — lookup follows normal lexical scoping.
+
+**No `arguments` object** — useful in decorators that forward both `this` and arguments:
+
+```js
+function defer(f, ms) {
+  return function() {
+    setTimeout(() => f.apply(this, arguments), ms); // arrow takes arguments from defer's wrapper
+  };
+}
+```
+
+Without an arrow, you'd need `let ctx = this; let args = arguments;` before `setTimeout`.
+
+**Cannot be called with `new`** — arrow functions have no `this`, so they can't be constructors. `new` throws `TypeError`.
+
+**No `super`** — `super` lookup falls through to the enclosing scope (or fails).
+
+**Summary of differences vs regular functions:**
+
+| Feature | Arrow | Regular |
+|---|---|---|
+| `this` | Lexical (from enclosing scope) | Dynamic (call site) |
+| `arguments` | Not available | Available |
+| `new` | Throws TypeError | Allowed |
+| `super` | Not available | Available |
+
+**Gotchas**:
+- **Don't use arrow functions as object methods** — `this` won't point to the object but to the outer scope
+- **`.call()` / `.apply()` / `.bind()` can't change `this`** on arrows — arguments still pass through but `this` is ignored
+- **DOM event listeners** — arrow handlers don't get `this = element`; use `event.currentTarget` instead
+
+### Classes — Basic syntax
+
+**A class is a kind of function.** `class User {...}` does two things: creates a function named `User` (the constructor) and stores methods on `User.prototype`.
+
+```js
+class User {
+  constructor(name) { this.name = name; }    // called by new
+  sayHi() { console.log(this.name); }         // method on User.prototype
+  // note: no commas between methods
+}
+
+typeof User;          // 'function'
+User === User.prototype.constructor; // true
+User.prototype.sayHi; // the function code
+```
+
+**Key differences from pure functions** — classes are NOT just syntactic sugar:
+- **Must call with `new`** — `User()` throws `TypeError` (internal flag `[[IsClassConstructor]]: true`)
+- **Methods are non-enumerable** — won't appear in `for...in`
+- **All code inside** is automatically strict mode (`"use strict"`)
+
+**Class expressions** — classes can be defined inline, passed around, returned:
+
+```js
+let User = class MyClass {
+  sayHi() { console.log(MyClass); } // MyClass visible only inside
+};
+new User().sayHi(); // works
+console.log(MyClass); // ReferenceError — not visible outside
+```
+
+Dynamic creation:
+```js
+function makeClass(phrase) {
+  return class { sayHi() { console.log(phrase); } };
+}
+```
+
+**Getters / setters** — defined on the prototype, same syntax as object literals:
+
+```js
+class User {
+  constructor(name) { this.name = name; } // invokes setter
+  get name() { return this._name; }
+  set name(value) {
+    if (value.length < 4) { console.log("Too short."); return; }
+    this._name = value;
+  }
+}
+```
+
+**Computed method names** — bracket notation works:
+
+```js
+class User { ['say' + 'Hi']() { console.log("Hello"); } }
+```
+
+**Class fields** — set on each *instance*, not the prototype:
+
+```js
+class User {
+  name = "John";                          // per-instance property
+  sayHi() { console.log(this.name); }
+}
+let u = new User();
+u.name;                   // 'John'
+User.prototype.name;      // undefined — fields are on instances
+```
+
+Values can come from expressions: `name = prompt("Name?", "John");`
+
+**Bound methods via arrow fields** — solves the losing-`this` problem for callbacks:
+
+```js
+class Button {
+  constructor(value) { this.value = value; }
+  click = () => { console.log(this.value); }; // arrow field = per-instance, this bound
+}
+let button = new Button("hello");
+setTimeout(button.click, 1000); // 'hello' — works, unlike prototype methods
+```
+
+Tradeoff: each instance gets its own copy → more memory, but `this` is always correct.
+
+**Complete example — Clock:**
+
+```js
+class Clock {
+  constructor({ template }) { this.template = template; }
+  render() {
+    let date = new Date();
+    let [h, m, s] = [date.getHours(), date.getMinutes(), date.getSeconds()]
+      .map(v => String(v).padStart(2, '0'));
+    console.log(this.template.replace('h', h).replace('m', m).replace('s', s));
+  }
+  start() { this.render(); this.timer = setInterval(() => this.render(), 1000); }
+  stop() { clearInterval(this.timer); }
+}
+```
+
+> Note: `static`, `extends`/`super`, `#private` fields — covered in separate chapters.
